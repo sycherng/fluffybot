@@ -2,6 +2,9 @@ import discord
 import asyncio
 from discord.ext.commands import Bot
 import datetime
+import c4
+import users
+
 
 # external settings
 bot_name = 'Fluffy-bot'
@@ -27,7 +30,9 @@ async def on_message(message):
     if message.author.id != bot_discord_id and message.channel != echo_room:
         await bot.send_message(echo_room, '{}/{}/{}/{}'.format(timestamp(), message.channel, message.author, message.content))
         if message.content.startswith(prefix):
-           await c4.respond(bot, message)
+            message.content = message.content[1:]
+            await c4.respond(bot, message)
+            await users.respond(bot, message)
 
 def timestamp():
     now = datetime.datetime.now()
@@ -40,7 +45,7 @@ def timestamp():
     timestamp = '{}-{}-{} {}:{}:{}'.format(year, month.zfill(2), day.zfill(2), hour.zfill(2), minute.zfill(2), second.zfill(2))
     return timestamp
     
-async def chide(message, correct_format):
+async def chide(bot, message, correct_format):
     await bot.send_message(message.author, "format is: *{}{}*".format(prefix, correct_format))
 
 async def verid(ss):
