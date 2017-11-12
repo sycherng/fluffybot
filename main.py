@@ -29,6 +29,7 @@ async def on_ready():
 async def on_message(message):
     if message.author.id != bot_discord_id and message.channel != echo_room:
         await bot.send_message(echo_room, '{}/{}/{}/{}'.format(timestamp(), message.channel, message.author, message.content))
+        await users.auto_signup(message.author)
         if message.content.startswith(prefix):
             message.content = message.content[1:]
             await c4.respond(bot, message)
@@ -49,6 +50,7 @@ async def chide(bot, message, correct_format):
     await bot.send_message(message.author, "format is: *{}{}*".format(prefix, correct_format))
 
 async def verid(ss):
+    '''verifies if id is likely valid a discord id'''
     if type(ss) == type('') and len(ss) >= 15 and len(ss) <= 20:
         return True
     return False
