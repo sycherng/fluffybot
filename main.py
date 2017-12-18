@@ -2,11 +2,10 @@ import discord
 import asyncio
 from discord.ext.commands import Bot
 import datetime
-import c4
-import users
+import db
+import user
 
-
-# external settings
+#--- external settings
 bot_name = 'Fluffy-bot'
 prefix = '='
 currency_name = 'waifu bucks'
@@ -14,7 +13,7 @@ echo_room = discord.Object(id = '366306796727566336')
 bot_owner = discord.User(id = '***REMOVED***')
 default_game = discord.Game(name='with your heart ❤')
 
-# internal client settings
+#--- internal client settings
 bot = Bot(command_prefix = prefix)
 bot_token = "MzAzNjU1NTc2OTgwOTQ2OTQ0.C9bRZw.GnLaFZKXVhhSPQemvAzUYGa428g"
 bot_discord_id = '303655576980946944'
@@ -27,15 +26,17 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    if message.author.id != bot_discord_id and message.channel != echo_room:
-        await bot.send_message(echo_room, '{}/{}/{}/{}'.format(timestamp(), message.channel, message.author, message.content))
-        await users.auto_signup(message.author)
-        if message.content.startswith(prefix):
-            message.content = message.content[1:]
-            await c4.respond(bot, message)
-            await users.respond(bot, message)
+    if message.author.id != bot_discord_id: #---Do not listen to self
+        await user.spawn_user(bot, message) #---Auto add everyone to db.user_table table
+        if db.check(message.author.id, 'rank', db.user_table) != 'alien' and message.content.startswith(prefix): #---If user is one of us and used the command prefix
+            message.content = message.content[1:] #---Slice off command prefix
+            await copy_to_echo_room(message) #---paste to echo room for troubleshooting
+            await user.respond(bot, message) #---send to modules
 
-def timestamp():
+async def copy_to_echo_room(message):
+    await bot.send_message(echo_room, '{}/{}/{}/{}'.format(get_timestamp(), message.channel, message.author, message.content))
+
+def get_timestamp():
     now = datetime.datetime.now()
     year = str(now.year)
     month = str(now.month)
@@ -45,15 +46,6 @@ def timestamp():
     second = str(now.second)
     timestamp = '{}-{}-{} {}:{}:{}'.format(year, month.zfill(2), day.zfill(2), hour.zfill(2), minute.zfill(2), second.zfill(2))
     return timestamp
-    
-async def chide(bot, message, correct_format):
-    await bot.send_message(message.author, "format is: *{}{}*".format(prefix, correct_format))
-
-async def verid(ss):
-    '''verifies if id is likely valid a discord id'''
-    if type(ss) == type('') and len(ss) >= 15 and len(ss) <= 20:
-        return True
-    return False
 
 if __name__ == '__main__':
     bot.run(bot_token)
