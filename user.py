@@ -1,3 +1,4 @@
+import asyncio
 import main
 import db
 
@@ -13,14 +14,19 @@ async def respond(bot, message):
     await user_add(bot, message)
 
 async def spawn_user(bot, message):
-    if not db.check(message.author.id, 'id', db.user_table):
-        db.update("INSERT INTO {} (id, nickname) VALUES ('{}', '{}');".format(db.user_table, message.author.id, message.author))
+    if not db.check(message.author.id, 'id', db.users):
+        db.update("INSERT INTO {} (id, nickname) VALUES (%s, %s);".format(db.users), (message.author.id, message.author.name))
 
 async def user_add(bot, message):
     #--- call: user add <id> <nickname>
     if message.content.startswith('user add '):
         msg = message.content.split()[2:]
         if db.rank_check(message.author.id, 'user add') and len(msg) == 2 and db.is_valid_id(msg[0]):
-            db.update("INSERT INTO {} (id, nickname, rank) VALUES ('{}', '{}', 'member');".format(db.user_table, msg[0], msg[1]))
+            db.update("INSERT INTO {} (id, nickname, rank) VALUES (%s, %s, 'member');".format(db.users), (msg[0], msg[1]))
 
-    
+async def user_edit(bot, message):
+    #--- call: user edit <id> <attribute> <value>
+    if message.content.startswith('user edit '):
+        msg = message.content.split()[2:]
+        if db.rank_check(message.author.id, 'user edit') and len(msg) == 3 and db.is_valid_id(msg[0]):
+            pass
