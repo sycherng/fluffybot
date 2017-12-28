@@ -7,6 +7,7 @@ async def respond(bot, message):
     await user_set_rank(bot, message)
     await user_set_nickname(bot, message)
     await user_set_balance(bot, message)
+    await user_list(bot, message)
 
 async def spawn_user(bot, message):
     if not db.check(message.author.id, 'id', db.users):
@@ -56,3 +57,34 @@ async def user_set_balance(bot, message):
         if db.rank_check(message.author.id, 'user set balance') and len(msg) == 2 and db.check(target, 'id', db.users) and goal_balance >= 0:
             db.update(f"UPDATE {db.users} SET {'balance'} = %s WHERE id = %s;", (goal_balance, target))
             await bot.send_message(message.author, 'Success: balance updated.')
+
+async def user_list(bot, message):
+    #---call: user list <id> <id> ...  OR user list *
+    #MUST CHECK IF USER EXISTS
+    if message.content.startswith('user list '):
+        if db.rank_check(message.author.id, 'user list'):
+            msg = message.content.split()[2:]
+            if msg[0] == '*':
+                query = db.fetch(f"select * from {db.users};", ())
+            else: #msg is a list of discord ids
+                ss = ''
+                for element in msg:
+                    if db.is_valid_id(element):
+                        ss+= f"id = '{element}' or "
+                ss += "id = ''"
+                query = db.fetch(f"select * from {db.users} where {ss}", ())
+            if query:
+                pp = ''
+                for index in range(len(query)):
+                    pp += format_user(query, index)
+                await bot.send_message(message.author, pp)
+            else:
+                await bot.send_message(message.author, "Error: none of supplied ids are in my database. Check if they are valid discord ids, then add them as users.")
+
+def format_user(arr, index):
+    res = arr[index]
+    id = res[0]
+    nickname = res[1]
+    rank = res[2]
+    balance = res[3]
+    return f"{nickname} ({id})\nrank: {rank}, balance: {balance}\n\n"
