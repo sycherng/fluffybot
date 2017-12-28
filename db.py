@@ -26,12 +26,16 @@ def update(query, parameters):
 
 def check(userid, attribute, table):
     x = fetch("SELECT {} FROM {} WHERE id  = %s;".format(attribute, table), (userid,))
-    return x[0][0]
+    if x:
+        return x[0][0]
+    else:
+        return False
 
 def rank_check(userid, function):
     rank = check(userid, 'rank', users)
     query = fetch("SELECT {} FROM {} WHERE FUNCTION = %s;".format(rank, permissions), (function,))
-    print(rank)
+    if not query:
+        return False
     if query[0][0] == True:
         return True
     return False

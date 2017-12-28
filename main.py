@@ -21,9 +21,10 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     if message.author.id != bot_discord_id: #---Do not listen to self, do not accept any queries with the word table
+        print('main 0')
         await user.spawn_user(bot, message) #---Auto add everyone to db.user_table table
         if message.content.startswith(prefix) and db.check(message.author.id, 'rank', db.users) != 'alien':
-            print(1)
+            print('main 1') 
             message.content = message.content[1:] #---Slice off command prefix
             await copy_to_echo_room(message) #---paste to echo room for troubleshooting
             await user.respond(bot, message) #---send to modules
