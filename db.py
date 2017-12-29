@@ -52,3 +52,5 @@ def is_valid_id(ss):
         return True
     return False
 
+def user_exists(userid):
+    return check(userid, 'id', users)

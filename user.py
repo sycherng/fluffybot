@@ -20,7 +20,7 @@ async def user_add(bot, message):
         target = msg[0]
         goal_nickname = msg[1]
         if db.rank_check(message.author.id, 'user add') and len(msg) == 2 and db.is_valid_id(target):
-            if db.check(target, 'id', db.users):
+            if db.user_exists(target):
                 await bot.send_message(message.author, 'Error: user already exists.')
             else:
                 db.update("INSERT INTO {} (id, nickname, rank) VALUES (%s, %s, 'member');".format(db.users), (target, goal_nickname))
@@ -32,7 +32,7 @@ async def user_set_rank(bot, message):
         msg = message.content.split()[3:]
         target = msg[0]
         goal_rank = msg[1]
-        if db.rank_check(message.author.id, 'user set rank') and len(msg) == 2 and db.check(target, 'id', db.users) and goal_rank in ['member', 'friend', 'alien']:
+        if db.rank_check(message.author.id, 'user set rank') and len(msg) == 2 and db.user_exists(target) and goal_rank in ['member', 'friend', 'alien']:
             target_curr_rank = db.check(target, 'rank', db.users)
             if goal_rank != target_curr_rank:
                 db.update(f"UPDATE {db.users} SET {'rank'} = %s WHERE id = %s;", (goal_rank, target))
@@ -44,7 +44,7 @@ async def user_set_nickname(bot, message):
         msg = message.content.split()[3:]
         target = msg[0]
         goal_nickname = msg[1]
-        if db.rank_check(message.author.id, 'user set nickname') and len(msg) == 2 and db.check(target, 'id', db.users):
+        if db.rank_check(message.author.id, 'user set nickname') and len(msg) == 2 and db.user_exists(target):
             db.update(f"UPDATE {db.users} SET {'nickname'} = %s WHERE id = %s;", (goal_nickname, target))
             await bot.send_message(message.author, 'Success: nickname updated.')
 
@@ -54,7 +54,7 @@ async def user_set_balance(bot, message):
         msg = message.content.split()[3:]
         target = msg[0]
         goal_balance = int(msg[1])
-        if db.rank_check(message.author.id, 'user set balance') and len(msg) == 2 and db.check(target, 'id', db.users) and goal_balance >= 0:
+        if db.rank_check(message.author.id, 'user set balance') and len(msg) == 2 and db.user_exists(target) and goal_balance >= 0:
             db.update(f"UPDATE {db.users} SET {'balance'} = %s WHERE id = %s;", (goal_balance, target))
             await bot.send_message(message.author, 'Success: balance updated.')
 
@@ -88,3 +88,8 @@ def format_user(arr, index):
     rank = res[2]
     balance = res[3]
     return f"{nickname} ({id})\nrank: {rank}, balance: {balance}\n\n"
+
+async def bot_alter_balance(sign, value, target): 
+    db.update(f"UPDATE {db.users} SET {'balance'} = balance {sign} {value} WHERE id = %s;", (target))
+
+
