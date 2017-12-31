@@ -1,10 +1,10 @@
-import db, secrets, asyncio, discord, random
+import db, secrets, asyncio, discord, random, user
 
 
 async def respond(bot, message):
     await user_welcome(bot, message)
     await submit_my_response(bot, message)
-
+    await test_dw(bot, message)
 
 class Welcome_Package:
     def __init__(self, referer, target, membertype, ign, ref_channel):
@@ -108,6 +108,20 @@ async def approve_response(bot, welcome_package):
     response = referer_response.content
     return response in ['a', 'A']
 
+class Test_Dw:
+    def __init__(self, target):
+        self.items = ['meow', 'woof', 'grawr']
+        self.membertype = 'social'
+        self.ign = 'Meow Weow'
+        self.target = target
+        self.referer = target
+
+async def test_dw(bot, message):
+    if message.content == 'tdw':
+        while welcome_queue:
+            welcome_queue.pop()
+        welcome_queue.append(Test_Dw(message.author))
+        await deliver_welcome(bot)
 
 wait = False
 async def deliver_welcome(bot):
@@ -124,10 +138,11 @@ async def deliver_welcome(bot):
             winlist = welcome_package.winner
             while len(winlist) < 5:
                 msg = await bot.wait_for_message(channel=secrets.fcgeneral, content=answer)
-                winlist.append(msg.author.id)
-            for winner in welcome_package.winner:
-                pass
+                if msg.author not in winlist:
+                    winlist.append(msg.author.id)
             await bot.send_message(secrets.fcgeneral, f"""We have our winners! Thanks for your participation.""")
+            for winner in winlist:
+                await user.bot_alter_balance('+', 100, winner)
+                try: await bot.send_message(discord.User(id=winner), f"Congrats! 100 {secrets.currency_name} have been deposited into your wallet. The correct answer was #{answer}: '{wish}'.")
+                except: pass
             wait == False
-
-

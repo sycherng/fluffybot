@@ -90,6 +90,6 @@ def format_user(arr, index):
     return f"{nickname} ({id})\nrank: {rank}, balance: {balance}\n\n"
 
 async def bot_alter_balance(sign, value, target): 
-    db.update(f"UPDATE {db.users} SET {'balance'} = balance {sign} {value} WHERE id = %s;", (target))
+    db.update(f"UPDATE {db.users} SET balance = balance {sign} {value} WHERE id = %s;", (target, ))
 
 
