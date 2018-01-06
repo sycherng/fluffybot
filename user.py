@@ -1,15 +1,18 @@
 import asyncio
-import main
 import db
+import main
 
 async def respond(bot, message):
+    pass
+
+async def prefix_respond(bot, message):
     await user_add(bot, message)
     await user_set_rank(bot, message)
     await user_set_nickname(bot, message)
     await user_set_balance(bot, message)
     await user_list(bot, message)
 
-async def spawn_user(bot, message):
+async def spawn_user(message):
     if not db.check(message.author.id, 'id', db.users):
         db.update("INSERT INTO {} (id, nickname) VALUES (%s, %s);".format(db.users), (message.author.id, message.author.name))
 

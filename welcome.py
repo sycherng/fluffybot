@@ -1,10 +1,17 @@
-import db, secrets, asyncio, discord, random, user
-
+import discord, asyncio, random
+import db, secrets
+import user
 
 async def respond(bot, message):
-    await user_welcome(bot, message)
+    #---messages that came in without prefix in front
     await submit_my_response(bot, message)
+
+
+async def prefix_respond(bot, message):
+    #---messages that came in with prefix in front (commands)
+    await user_welcome(bot, message)
     await test_dw(bot, message)
+
 
 class Welcome_Package:
     def __init__(self, referer, target, membertype, ign, ref_channel):
