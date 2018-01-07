@@ -1,3 +1,11 @@
+'''
+This is the database querying module 
+written for fluffy_bot using psycopg2.
+
+It will be retired as soon as the asyncpg
+variation is up and running.
+'''
+
 import psycopg2
 import secrets
 

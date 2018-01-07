@@ -6,7 +6,7 @@ import datetime
 import test
 
 #import custom modules which do not interact with users
-import secrets, db
+import secrets, async_db as db
 
 #import custom modules which interact with users
 import user, welcome, reminder
@@ -28,13 +28,13 @@ async def on_message(message):
         await copy_to_echo_room(message)
 
         #--- spawn any new users in user_objects
-        await user.spawn_user(bot, message)
+        await user.spawn_user(message)
 
         #--- forward message to test.py module
         await test.respond(bot, message)
 
         #--- aliens not permitted to use
-        if db.check(message.author.id, 'rank', db.users) != 'alien':
+        if await db.get_rank(message.author.id) != 'alien':
             #---forward message to prefixed (command) functions of all other modules
             if message.content.startswith(secrets.prefix):
                 #---Slice off command prefix
@@ -50,7 +50,7 @@ async def on_message(message):
                 await reminder.respond(bot, message)
 
 async def copy_to_echo_room(message):
-    await bot.send_message(secrets.echo_room, f'`{get_timestamp()}/{message.channel}/{message.author[:-5]} {message.author.id}`\n```{message.content}```')
+    await bot.send_message(secrets.echo_room, f'`{get_timestamp()}/{message.channel}/{message.author.name[:-5]} {message.author.id}`\n```{message.content}```')
 
 def get_timestamp():
     now = datetime.datetime.now()

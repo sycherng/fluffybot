@@ -1,5 +1,5 @@
 import asyncio
-import db
+import async_db as db, secrets
 import main
 
 async def respond(bot, message):
@@ -10,58 +10,108 @@ async def prefix_respond(bot, message):
     await user_set_rank(bot, message)
     await user_set_nickname(bot, message)
     await user_set_balance(bot, message)
-    await user_list(bot, message)
+    #await user_list(bot, message)
 
 async def spawn_user(message):
-    if not db.check(message.author.id, 'id', db.users):
-        db.update("INSERT INTO {} (id, nickname) VALUES (%s, %s);".format(db.users), (message.author.id, message.author.name))
+    '''|bot|
+    (Message object) -> None
+
+    Creates an entry for the message author in the bot's database if one does not exist.
+    '''
+    if not await db.user_exists(message.author.id):
+        await db.execute(f"INSERT INTO user_objects (id, nickname) VALUES $1, $2)", message.author.id, message.author.name)
 
 async def user_add(bot, message):
-    #--- call: user add <id> <nickname>
-    if message.content.startswith('user add '):
+    '''|user|
+    (Bot object, Message object) -> None
+
+    Command: <prefix>user add <target_id> <target_nickname>
+
+    Creates an entry for the target user in the bot's database if one does not exist, and the message
+    author has sufficient rank with the bot.
+    '''
+    command_opener = 'user add'
+    if message.content.startswith(command_opener) and await db.user_has_permission(message.author.id, command_opener):
         msg = message.content.split()[2:]
-        target = msg[0]
-        goal_nickname = msg[1]
-        if db.rank_check(message.author.id, 'user add') and len(msg) == 2 and db.is_valid_id(target):
-            if db.user_exists(target):
-                await bot.send_message(message.author, 'Error: user already exists.')
+        target_id = msg[0]
+        target_nickname = msg[1]
+
+        if await db.user_exists(target_id):
+            await bot.send_message(message.author, 'Error: user already exists.')
+            
+        elif len(msg) == 2 and await db.is_valid_id(target_id):
+            try: await db.execute(f"INSERT INTO user_objects (id, nickname, rank) VALUES ($1, $2, 'member')", target_id, target_nickname)
+            except Exception as error:
+               await notify_owner(bot, command_opener, message.author, error)
             else:
-                db.update("INSERT INTO {} (id, nickname, rank) VALUES (%s, %s, 'member');".format(db.users), (target, goal_nickname))
-                await bot.send_message(message.author, 'Ok, user created.')
+               await bot.send_message(message.author, 'Ok, user created.')
+
 
 async def user_set_rank(bot, message):
-    #--- call: user set rank <id> <rank>
-    if message.content.startswith('user set rank '):
+    '''|user|
+    (Bot object, Message object) -> None
+    
+    Command: <prefix>user set rank <target_id><target_rank>
+
+    Changes target user's rank with bot if user already exists in bot's database, and the message author
+    has sufficient rank with the bot.
+    '''
+    command_opener = 'user set rank'
+    if message.content.startswith(command_opener) and await db.user_has_permission(message.author.id, command_opener):
         msg = message.content.split()[3:]
-        target = msg[0]
+        target_id = msg[0]
         goal_rank = msg[1]
-        if db.rank_check(message.author.id, 'user set rank') and len(msg) == 2 and db.user_exists(target) and goal_rank in ['member', 'friend', 'alien']:
-            target_curr_rank = db.check(target, 'rank', db.users)
+
+        if len(msg) == 2 and await db.user_exists(target_id) and goal_rank in ['member', 'friend', 'alien']:
+            target_curr_rank = await db.get_attribute(target_id, 'rank', 'user_objects')
             if goal_rank != target_curr_rank:
-                db.update(f"UPDATE {db.users} SET {'rank'} = %s WHERE id = %s;", (goal_rank, target))
-                await bot.send_message(message.author, 'Success: rank changed.')
+                try: await db.execute(f"UPDATE user_objects SET rank = $1 WHERE id = $2;", goal_rank, target_id)
+                except Exception as error: await notify_owner(bot, command_opener, message.author, error)
+                else: await bot.send_message(message.author, 'Success: rank changed.')
 
 async def user_set_nickname(bot, message):
-    #--- call: user set nickname <id> <nickname>
-    if message.content.startswith('user set nickname '):
+    '''|user|
+    (Bot object, Message Object) - > None
+
+    Command: <prefix>user set nickname <target_id><target_nickname>
+
+    Changes target user's nickname with bot if user already exists in bot's database, and the message
+    author has sufficient rank with the bot.
+    '''
+    command_opener = 'user set nickname'
+    if message.content.startswith(command_opener) and await db.user_has_permission(message.author.id, command_opener):
         msg = message.content.split()[3:]
-        target = msg[0]
-        goal_nickname = msg[1]
-        if db.rank_check(message.author.id, 'user set nickname') and len(msg) == 2 and db.user_exists(target):
-            db.update(f"UPDATE {db.users} SET {'nickname'} = %s WHERE id = %s;", (goal_nickname, target))
-            await bot.send_message(message.author, 'Success: nickname updated.')
+        target_id = msg[0]
+        target_nickname = msg[1]
+        if len(msg) == 2 and await db.user_exists(target_id):
+            try: await db.execute(f"UPDATE user_objects SET nickname = $1 WHERE id = $2", target_nickname, target_id)
+            except Exception as error: await notify_owner(bot, command_opener, message.author, error)
+            else: await bot.send_message(message.author, 'Success: nickname updated.')
 
 async def user_set_balance(bot, message):
-    #--- call: user set balance <id> <amount>
-    if message.content.startswith('user set balance '):
-        msg = message.content.split()[3:]
-        target = msg[0]
-        goal_balance = int(msg[1])
-        if db.rank_check(message.author.id, 'user set balance') and len(msg) == 2 and db.user_exists(target) and goal_balance >= 0:
-            db.update(f"UPDATE {db.users} SET {'balance'} = %s WHERE id = %s;", (goal_balance, target))
-            await bot.send_message(message.author, 'Success: balance updated.')
+    '''|user|
 
+    Command: <prefix>user set balance <target_id><target_balance>
+
+    Changes target user's balance with bot if user already exists in bot's database, and the message
+    author has sufficient rank with the bot.
+    '''
+    command_opener = 'user set balance'
+    if message.content.startswith(command_opener) and await db.user_has_permission(message.author.id, command_opener):
+        msg = message.content.split()[3:]
+        target_id = msg[0]
+        try: target_balance = int(msg[1])
+        except: await bot.send_message(message.author, "Error: illegal balance.")
+        else:
+            if len(msg) == 2 and await db.user_exists(target_id) and target_balance >= 0:
+                try: await db.execute(f"UPDATE user_objects SET balance = $1 WHERE id = $2", target_balance, target_id)
+                except Exception as error: await notify_owner(bot, command_opener, message.author, error)
+                else: await bot.send_message(message.author, 'Success: balance updated.')
+
+'''
 async def user_list(bot, message):
+    Note: The below functions are out of date. Please refactor for asyncpg and test.
+    
     #---call: user list <id> <id> ...  OR user list *
     #MUST CHECK IF USER EXISTS
     if message.content.startswith('user list '):
@@ -93,6 +143,15 @@ def format_user(arr, index):
     return f"{nickname} ({id})\nrank: {rank}, balance: {balance}\n\n"
 
 async def bot_alter_balance(sign, value, target): 
-    db.update(f"UPDATE {db.users} SET balance = balance {sign} {value} WHERE id = %s;", (target, ))
+    db.execute(f"UPDATE {db.users} SET balance = balance {sign} {value} WHERE id = %s;", (target, ))
+'''
 
+async def notify_owner(bot, command_opener, author, error):
+    '''|bot|
+    (Bot object, str, User object) -> None
 
+    Given bot, command opener, and author of a failed command attempt, Direct Message the owner
+    about the failure.
+    '''
+    author_nickname = await db.get_attribute(author.id, 'nickname', 'user_objects')
+    await bot.send_message(secrets.bot_owner, f'`{command_opener}` command from {author_nickname} failed with error:\n```{error}```')

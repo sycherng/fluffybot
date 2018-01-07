@@ -1,5 +1,5 @@
 import discord, asyncio, random
-import db, secrets
+import async_db as db, secrets
 import user
 
 async def respond(bot, message):
@@ -26,7 +26,7 @@ welcome_dict = {} #dict {target_id -> Welcome Package
 async def user_welcome(bot, message):
     #---call: user welcome <id> <membertype> <ign-first> <ign-last>
     if message.content.startswith('user welcome ') and message.channel.is_private == True:
-        if db.rank_check(message.author.id, 'user welcome'):
+        if db.user_has_permission(message.author.id, 'user welcome'):
             msg = message.content.split()[2:]
             referer = message.author
             target = discord.User(id=msg[0])
