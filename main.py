@@ -3,7 +3,7 @@ from discord.ext.commands import Bot
 import datetime
 
 #import custom test.py module for experimental code
-import test
+from examples import test
 
 #import custom modules which do not interact with users
 import secrets, async_db as db

@@ -74,7 +74,9 @@ async def user_exists(user_id):
     (str) -> bool
     Given a user's discord id, return True if user exists in bot's database, False otherwise.
     '''
-    try: records_list = await get_attribute(user_id, 'id', 'user_objects')
+    try:
+        records_list = await get_attribute(user_id, 'id', 'user_objects')
+        user = records_list[0][user_id]
     except: return False
     else:
         return True

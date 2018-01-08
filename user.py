@@ -1,6 +1,5 @@
 import asyncio
 import async_db as db, secrets
-import main
 
 async def respond(bot, message):
     pass
@@ -19,7 +18,7 @@ async def spawn_user(message):
     Creates an entry for the message author in the bot's database if one does not exist.
     '''
     if not await db.user_exists(message.author.id):
-        await db.execute(f"INSERT INTO user_objects (id, nickname) VALUES $1, $2)", message.author.id, message.author.name)
+        await db.execute(f"INSERT INTO user_objects (id, nickname) VALUES {message.author.id}, {message.author.name[:-5]})")
 
 async def user_add(bot, message):
     '''|user|
