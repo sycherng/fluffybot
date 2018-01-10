@@ -5,5 +5,29 @@ reminder.edit_event_text and .create_event both working
 
 1/9/2018
 
+[git committed]
 edited async_db.user_exists to fix user.spawn_user, did not test whether bug resolved.
 edit event functions all complete and working on test
+-----------------
+
+Chose to start with event subscribing functionality, ignoring polling until further notice.
+
+Renamed reminder.py to event.py
+
+Bit of a mess in event.py especially with documentation, not all have the following new format
+'''|user|
+    (Bot object, Message object, str) -> None
+
+    Command: <prefix>edit event <id> finalize
+
+    Invoker: edit_event_field() after checking:
+    -message author's rank
+    -event.finalized = False
+
+    Given: -event_id, message.author.id
+
+    Checks: -event.name, .description, .instruction, .starts_at are not null.
+
+    Action: sets event.finalized to True, preventing further edit command calls for this event.
+    '''
+
