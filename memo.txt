@@ -1,0 +1,9 @@
+1/8/2018
+
+spawn user not behaving as expected, keeps saying user doesnt exist in database, even when i am the message author.
+reminder.edit_event_text and .create_event both working
+
+1/9/2018
+
+edited async_db.user_exists to fix user.spawn_user, did not test whether bug resolved.
+edit event functions all complete and working on test

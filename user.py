@@ -18,7 +18,11 @@ async def spawn_user(message):
     Creates an entry for the message author in the bot's database if one does not exist.
     '''
     if not await db.user_exists(message.author.id):
-        await db.execute(f"INSERT INTO user_objects (id, nickname) VALUES {message.author.id}, {message.author.name[:-5]})")
+        print('making new user')
+        if len(message.author.name) > 5 and message.author.name[-5] == '#':
+            message.author.name = message.author.name[:-5]
+        await db.execute(f"INSERT INTO user_objects (id, nickname) VALUES ($1, $2)", message.author.id, message.author.name)
+        print('done making new user')
 
 async def user_add(bot, message):
     '''|user|

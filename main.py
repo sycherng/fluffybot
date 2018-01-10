@@ -2,14 +2,14 @@ import discord, asyncio
 from discord.ext.commands import Bot
 import datetime
 
-#import custom test.py module for experimental code
+#import custom test modules for experimental code
 from examples import test
-
+from examples.dupe import *
 #import custom modules which do not interact with users
 import secrets, async_db as db
 
 #import custom modules which interact with users
-import user, welcome, reminder
+import user, welcome, event
 
 bot = Bot(command_prefix = secrets.prefix)
 
@@ -22,7 +22,6 @@ async def on_ready():
 async def on_message(message):
     #--- ignore self
     if message.author.id != secrets.bot_discord_id:
-
         #--- debugging messages
         print(f'{message.author}: {message.content}')
         await copy_to_echo_room(message)
@@ -41,13 +40,14 @@ async def on_message(message):
                 message.content = message.content[1:]
                 await user.prefix_respond(bot, message) 
                 await welcome.prefix_respond(bot, message)
-                await reminder.prefix_respond(bot, message)
+                await event.prefix_respond(bot, message)
 
             #--- forward message to non-prefixed functions of all other modules
             else:
                 await user.respond(bot, message)
                 await welcome.respond(bot, message)
-                await reminder.respond(bot, message)
+                await event.respond(bot, message)
+
 
 async def copy_to_echo_room(message):
     await bot.send_message(secrets.echo_room, f'`{get_timestamp()}/{message.channel}/{message.author.name[:-5]} {message.author.id}`\n```{message.content}```')
