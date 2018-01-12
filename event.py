@@ -1,5 +1,5 @@
 import asyncio, datetime, string
-import async_db as db, secrets
+import async_db as db, secrets, reminder
 import user
 
 async def respond(bot, message):
@@ -160,6 +160,7 @@ async def spawn_reminder_entries(event_id, starts_at, bot):
     Action: -inserts 9 new entries of varying reminder times for the event into bot.reminders table.
     '''
     #debug
+    success = False
     print('spawning reminder entries...')
     b12h = starts_at - datetime.timedelta(hours=12)
     b6h = starts_at - datetime.timedelta(hours=6)
@@ -175,7 +176,10 @@ async def spawn_reminder_entries(event_id, starts_at, bot):
     for description, dt in description_to_dt:
         try: await db.execute(f"INSERT INTO reminders (reason, reason_id, description, due, subscribers) VALUES ('event', $1, $2, $3, $4)", event_id, description, dt, [])
         except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
-        else: await bot.send_message(secrets.bot_owner, f'Reminders for event #{event_id} spawned.')
+        else: success = True
+    if success: 
+        await bot.send_message(secrets.bot_owner, f'Reminders for event #{event_id} spawned.')
+        await reminder.reminder_checker(bot)
            
 async def event_rvsp(bot, message):
     '''|user|

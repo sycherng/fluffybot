@@ -1,33 +1,16 @@
 1/8/2018
+event.edit_event_text, .create_event done
 
-spawn user not behaving as expected, keeps saying user doesnt exist in database, even when i am the message author.
-reminder.edit_event_text and .create_event both working
 
 1/9/2018
+async_db.user_exists -> user.spawn_user fixed
+event.edit_event_start, .edit_event_finalize done
 
-[git committed]
-edited async_db.user_exists to fix user.spawn_user, did not test whether bug resolved.
-edit event functions all complete and working on test
------------------
+1/10/2018
+event.spawn_reminder_entries
 
-Chose to start with event subscribing functionality, ignoring polling until further notice.
+1/11/2018
+event.spawn_reminder_entries, event_rvsp, .set_reminder done
 
-Renamed reminder.py to event.py
-
-Bit of a mess in event.py especially with documentation, not all have the following new format
-'''|user|
-    (Bot object, Message object, str) -> None
-
-    Command: <prefix>edit event <id> finalize
-
-    Invoker: edit_event_field() after checking:
-    -message author's rank
-    -event.finalized = False
-
-    Given: -event_id, message.author.id
-
-    Checks: -event.name, .description, .instruction, .starts_at are not null.
-
-    Action: sets event.finalized to True, preventing further edit command calls for this event.
-    '''
-
+1/12/2018
+wip: background task checks reminder, announces to all in list

@@ -6,7 +6,7 @@ import datetime
 from examples import test
 from examples.dupe import *
 #import custom modules which do not interact with users
-import secrets, async_db as db
+import secrets, async_db as db, reminder
 
 #import custom modules which interact with users
 import user, welcome, event
@@ -41,13 +41,14 @@ async def on_message(message):
                 await user.prefix_respond(bot, message) 
                 await welcome.prefix_respond(bot, message)
                 await event.prefix_respond(bot, message)
+                await reminder.prefix_respond(bot, message)
 
             #--- forward message to non-prefixed functions of all other modules
             else:
                 await user.respond(bot, message)
                 await welcome.respond(bot, message)
                 await event.respond(bot, message)
-
+                await reminder.respond(bot, message)
 
 async def copy_to_echo_room(message):
     await bot.send_message(secrets.echo_room, f'`{get_timestamp()}/{message.channel}/{message.author.name[:-5]} {message.author.id}`\n```{message.content}```')
