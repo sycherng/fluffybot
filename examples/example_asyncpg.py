@@ -8,9 +8,14 @@ Memo: $n can only work as data values, not as identifiers.
 
 async def bar():
     conn = await asyncpg.connect(user=secrets.db_user, password=secrets.db_password, database=secrets.db_database)
-    author_id = '2222222222222222'
-    author_name = 'Meow-test#9829'
-    await conn.execute(f"INSERT INTO user_objects (id, nickname) VALUES ($1, $2)", author_id, author_name[:-5])
+    event_id = '00001'
+    user_id = '***REMOVED***'
+    res = await conn.fetch("select * from event where event_id = $1", event_id)
+    if res:
+        for record in res:
+            for k, v in record.items():
+                if v == user_id:
+                    print(record)
     await conn.close()
 
 

@@ -22,6 +22,7 @@ async def create_event(bot, message):
     '''
     command_opener = 'create event'
     if message.content == command_opener and await db.user_has_permission(message.author.id, command_opener):
+        print('creating event')
         result_list = await db.fetch('SELECT max(event_id::int) FROM event')
         max_event_id = result_list[0]['max'] #int
         if max_event_id < 99999:
@@ -55,6 +56,7 @@ async def edit_event_field(bot, message):
     '''
     command_opener = 'edit event'
     if message.content.startswith(command_opener):
+        print('editing event...')
         msg = message.content.split()[2:]
         event_id = msg[0]
         if event_id.isdigit() and (await db.user_has_permission(message.author.id, command_opener) or await db.is_event_host(message.author.id)):
@@ -81,6 +83,7 @@ async def edit_event_text(bot, message, command_opener):
 
     Actions: -alters event name, description, or instruction to the specified text.
     '''
+    print('editing event name/description/instruction...')
     msg = message.content.split()
     event_id = msg[2]
     field = msg[3]
@@ -96,7 +99,7 @@ async def edit_event_start(bot, message, command_opener):
 
     Command: <prefix>edit event <id> start <yyyy>/<mm>/<dd> <hh>:<mm>
 
-    Invoked: edit_event_field() after checking:
+    Invoker: edit_event_field() after checking:
     -message author's rank
     -event.finalized = False
 
@@ -104,6 +107,7 @@ async def edit_event_start(bot, message, command_opener):
     -alters event starts_at to the specified date and time.
     -assume Pacific, Canada time zone until further implementation.
     '''
+    print('editing event start...')
     msg = message.content.split()
     event_id = msg[2]
     date = msg[4].split('/')
@@ -128,6 +132,7 @@ async def edit_event_finalize(bot, message, command_opener):
     Checks: -event.name, .description, .instruction, .starts_at are not null. 
     Action: sets event.finalized to True, preventing further edit command calls for this event.
     '''
+    print('finalizing event...')
     msg = message.content.split()
     event_id = msg[2]
     try:
@@ -136,17 +141,17 @@ async def edit_event_finalize(bot, message, command_opener):
         if rd['name'] and rd['description'] and rd['instruction'] and rd['starts_at']:
             field_empty_error = False
             await db.execute(f"UPDATE event SET finalized = TRUE WHERE event_id = $1", event_id)
-            await spawn_reminder_entries(event_id, rd['starts_at'])
-       else:
+        else:
             field_empty_error = True
     except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
     else:
         if field_empty_error:
             await bot.send_message(message.author, "Event must have name, description, instruction, and start time to be finalized.")
         else:
+            await spawn_reminder_entries(event_id, rd['starts_at'], bot)
             await bot.send_message(message.author, f'Event #{event_id} finalized.')
 
-async def spawn_reminder_entries(event_id, starts_at):
+async def spawn_reminder_entries(event_id, starts_at, bot):
     '''|bot|
     (str, datetime.datetime object) -> None
 
@@ -154,6 +159,8 @@ async def spawn_reminder_entries(event_id, starts_at):
     Given: -event id, intended start time
     Action: -inserts 9 new entries of varying reminder times for the event into bot.reminders table.
     '''
+    #debug
+    print('spawning reminder entries...')
     b12h = starts_at - datetime.timedelta(hours=12)
     b6h = starts_at - datetime.timedelta(hours=6)
     b1h = starts_at - datetime.timedelta(hours=1)
@@ -164,12 +171,13 @@ async def spawn_reminder_entries(event_id, starts_at):
     a10m = starts_at + datetime.timedelta(minutes=10)
     a15m = starts_at + datetime.timedelta(minutes=15)
     description_arr = list(map(lambda x: x[1:] + ' before' if x[0] is 'b' else x[1:] + ' after', 'b12h b6h b1h b30m b10m b2m a5m a10m a15m'.split()))
-    for tup in zip(description_arr, [b12h, b6h, b1h, b30m, b10m, b2m, a5m, a10m, a15m]):
-        for description, dt in tup:
-            await db.execute(f"INSERT INTO reminders (reason, reason_id, description, due, subscribers) VALUES ('event', {event_id}, {description}, {dt}, [])")
-    await bot.send_message(secrets.bot_owner, f'Reminders for event #{event_id} spawned.')
+    description_to_dt = list(zip(description_arr, [b12h, b6h, b1h, b30m, b10m, b2m, a5m, a10m, a15m]))
+    for description, dt in description_to_dt:
+        try: await db.execute(f"INSERT INTO reminders (reason, reason_id, description, due, subscribers) VALUES ('event', $1, $2, $3, $4)", event_id, description, dt, [])
+        except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
+        else: await bot.send_message(secrets.bot_owner, f'Reminders for event #{event_id} spawned.')
            
-async def event_rvsp(bot, message, command_prefix):
+async def event_rvsp(bot, message):
     '''|user|
     Command: <prefix>rvsp event <id> <yes>
     Command: <prefix>rvsp event <id> <no>
@@ -179,11 +187,12 @@ async def event_rvsp(bot, message, command_prefix):
     Action: -inserts new entry into bot.rvsp for user for this event if none exists, updates entry otherwise
     with 'yes' or 'no', allowing user to express if they will be attending that event.
     '''
-    command_prefix = 'event_rvsp'
+    command_opener = 'event rvsp'
     errors = ''
     success = False
-    if message.content.startswith(command_prefix):
-        if await db.user_has_permission(message.author.id, command_prefix):
+    if message.content.startswith(command_opener):
+        print('rvsping to event...')
+        if await db.user_has_permission(message.author.id, command_opener):
             msg = message.content.split()[2:]
             event_id = msg[0]
             answer = msg[1]
@@ -192,14 +201,14 @@ async def event_rvsp(bot, message, command_prefix):
                 answerdict = {'yes': True, 'no': False}
                 #--- see if there is an entry for this user and event already
                 try:
-                    records_list = await db.fetch("SELECT * FROM rvsp WHERE event_id = $1 AND user_id = $2", event_id, message.author.content)
+                    records_list = await db.fetch("SELECT * FROM rvsp WHERE event_id = $1 AND user_id = $2", event_id, message.author.id)
                 except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
                 else:
                     #--- if entry already exists
                     if records_list:
                         old_answer = records_list[0]['will_attend']
                         if old_answer != answer:
-                            try: await db.execute("UPDATE rvsp SET will_attend = $1 WHERE user_id = $2", answer, user_id)
+                            try: await db.execute("UPDATE rvsp SET will_attend = $1 WHERE user_id = $2", answerdict[answer], message.author.id)
                             except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
                             else: success = True
                     #--- if no such entry exists
@@ -232,15 +241,16 @@ async def set_reminder(bot, message):
     -allows user to subscribe to existing reminders
     -shows user a 'menu' of reminders available for the event and allows user to choose several
     '''
-    command_prefix = 'set reminder'
+    command_opener = 'set reminder'
     errors = ''
     success = False
-    if message.content.startswith(command_prefix):
-        if await db.user_has_permission(message.author.id, command_prefix):
+    if message.content.startswith(command_opener):
+        print('setting reminders...')
+        if await db.user_has_permission(message.author.id, command_opener):
             msg = message.content.split()[2:]
             reason_id = msg[0]
             #--- check if reminders exist for this reason
-            try: list_of_reminders = db.fetch("SELECT * FROM reminders WHERE reason_id = $1", reason_id)
+            try: list_of_reminders = await db.fetch("SELECT * FROM reminders WHERE reason_id = $1", reason_id)
             except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
             else:
                 #--- if such reminders exist
@@ -249,24 +259,48 @@ async def set_reminder(bot, message):
                     #--- show all reminders as a menu for user and whether they've subscribed
                     #--- for every selected option, append them to subscribers list
                     #--- for every unselected option, remove them from subscribers list
-                    alphabet_list = list(string.ascii_lowercase)[:len(reminders_list)]
-                    alphabet_to_reminder = dict(zip(alphabet_list, reminders_list))
-                    menu = ''
+                    alphabet_list = list(string.ascii_lowercase)[:len(list_of_reminders)]
+                    alphabet_to_reminder = dict(zip(alphabet_list, list_of_reminders))
+                    menu = '```'
                     menu += f" {'option':^8} | {'description':^13} | {'subscribed?':^13}\n"
                     for alphabet, reminder in alphabet_to_reminder.items():
                         option = alphabet
                         reminder_description = reminder['description']
                         reminder_subscribers = reminder['subscribers']
-                        #subscribed = 'Y' if user_id in reminder_subscribers else 'N'
-                        subscribed = 'Y'
-                        menu += f"{option:^8} | {reminder_description:^13} | {subscribed:^13}\n"
-                    await bot.send_message(message.author, f"Reminders for {reason_type}#{reason_id}:\n{menu}\nReply with all options you wish to subscribe to in one comment, separated by spaces.")
-
+                        subscribed = 'Y' if message.author.id in reminder_subscribers else 'N'
+                        menu += f" {option:^8} | {reminder_description:^13} | {subscribed:^13}\n"
+                    menu += '```'
+                    await bot.send_message(message.author, f"The following are reminder/alarms you can subscribe to for {reason_type}#{reason_id}. I will privately message you reminding you about the {reason_type} at the subscribed times.\n{menu}\n\nReply with all options you wish to subscribe to in one comment, separated by spaces.\nOptions not mentioned will be unsubscribed from.\nFor example: a d e")
+                    reply = await bot.wait_for_message(author=message.author, timeout=30)
+                    if reply:
+                        reply = reply.content
+                        if ' ' in reply:
+                            replies = reply.split()
+                        else:
+                            replies = [letter for letter in reply]
+                        try:
+                            for alphabet, reminder in alphabet_to_reminder.items():
+                                subscribers_list = reminder['subscribers']
+                                if alphabet in replies:
+                                    if message.author.id not in subscribers_list:
+                                        subscribers_list.append(message.author.id)
+                                        print(f'subscribers_list = {subscribers_list}')
+                                        print(f'reason_id = {reason_id}')
+                                        print(f"reminder['description'] = {reminder['description']}\n")
+                                        await db.execute("UPDATE reminders SET subscribers = $1 WHERE reason_id = $2 AND description = $3", subscribers_list, reason_id, reminder['description'])
+                                else:
+                                    if message.author.id in subscribers_list:
+                                        subscribers_list.remove(message.author.id)
+                                        await db.execute("UPDATE reminders SET subscribers = $1 WHERE reason_id = $2 AND description = $3", subscribers_list, reason_id, reminder['description'])
+                        except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
+                        else: success = True
+                    else:
+                        await bot.send_message(message.author, "Feel free to have some time to think about it, just call me again when you're ready.")
                 #--- if reminders don't exist
                 else:
-                    errors == 'No reminders available for this reason id.\n'
-
-
+                    errors == 'No reminders/alarms available for the reason/event you provided.\n'
        #--- user has insufficient rank
         else:
             errors += 'You do not have permission to use this command.\n'
+        if success:
+            await bot.send_message(message.author, "Reminders updated. Thank you.")
