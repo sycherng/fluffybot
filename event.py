@@ -10,6 +10,7 @@ async def prefix_respond(bot, message):
     await edit_event_field(bot, message)
     await event_rvsp(bot, message)
     await set_reminder(bot, message)
+    await event_list(bot, message)
 
 async def create_event(bot, message):
     '''|user|
@@ -308,3 +309,65 @@ async def set_reminder(bot, message):
             errors += 'You do not have permission to use this command.\n'
         if success:
             await bot.send_message(message.author, "Reminders updated. Thank you.")
+
+async def event_list(bot, message):
+    '''|user|
+    (Bot object, Message object) -> None
+    
+    Command: <prefix>event list *
+    Command: <prefix>event list <event_id> <event_id> ...
+    
+    Checks: -message author rank, event_id active if given
+    Action: fetches only active events and displays details to message author.
+    ''' 
+    command_opener = 'event list'
+    errors = ''
+    success = False
+    valid_ids = False
+    if message.content.startswith(command_opener):
+        print('listing events...')
+        if await db.user_has_permission(message.author.id, command_opener):
+            msg = message.content.split()[2:]
+            text = 'Current events:\n\n'
+            #--- if asking to list all entries
+            if len(msg) == 1 and msg[0] == '*':
+                print('fetching all event entries...')
+                rl = await db.fetch(f"SELECT u.nickname, e.event_id, e.name, e.description, e.instruction, e.starts_at FROM user_objects u, event e WHERE e.host_id = u.id AND e.finalized = 't' AND e.archived = 'f' ORDER BY e.event_id ASC")
+                if rl:
+                    for r in rl: #list of multiple records
+                        text += f"#{r['event_id']} {r['name']} | {r['starts_at']} PDT | hosted by: {r['nickname']}\n```{r['description']}\n{r['instruction']}```\n\n"
+                    valid_ids = True 
+                    success = True
+
+            #--- if asking to list specific entries
+            elif len(msg) >= 1 and all_elements_are_len(msg, 5):
+                print('fetching specified event entries...')
+                ids_to_fetch = msg
+                for eid in ids_to_fetch:
+                    try: rl = await db.fetch(f"SELECT u.nickname, e.event_id, e.name, e.description, e.instruction, e.starts_at FROM user_objects u, event e WHERE e.host_id = u.id AND e.finalized = 't' AND e.archived = 'f' AND e.event_id = $1",  eid)
+                    except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
+                    else:
+                        if rl: #list of one record
+                            valid_ids = True
+                            success = True
+                            r = rl[0]
+                            text += f"#{r['event_id']} {r['name']} | {r['starts_at']} PDT | hosted by: {r['nickname']}\n```{r['description']}\n{r['instruction']}```\n\n"  
+
+            #--- if neither format
+            else: errors += f'Incorrect format.\nMust be either `{secrets.prefix}event list *` or `{secrets.prefix}event list <event_id> <optionally more event_ids separated by spaces>`.\n\nEvent_id must be 5 digits long.'
+        else: errors += "You do not have permission to use this command.\n\n"
+        if not valid_ids: errors += f'No valid event ids supplied. Try `{secrets.prefix}event list *` to list all current events.'
+        if errors: await bot.send_message(message.author, f'Error:\n{errors}')
+        elif success: await bot.send_message(message.author, text)
+
+def all_elements_are_len(arr, leng):
+    '''|bot|
+    (list, integer) -> bool
+
+    Action: return True if all elements in array are exactly leng length, False otherwise.
+    '''
+    for element in arr:
+        if len(element) != leng:
+            return False
+    return True
+

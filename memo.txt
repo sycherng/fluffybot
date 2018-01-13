@@ -13,4 +13,7 @@ event.spawn_reminder_entries
 event.spawn_reminder_entries, event_rvsp, .set_reminder done
 
 1/12/2018
-wip: background task checks reminder, announces to all in list
+reminder.reminder_checker done
+event.event_list done
+
+wip: cleaning up long code blocks, inserting missing function documentation, proper command format error handling
