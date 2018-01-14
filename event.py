@@ -184,8 +184,8 @@ async def spawn_reminder_entries(event_id, starts_at, bot):
            
 async def event_rvsp(bot, message):
     '''|user|
-    Command: <prefix>rvsp event <id> <yes>
-    Command: <prefix>rvsp event <id> <no>
+    Command: <prefix>rvsp event <id> yes
+    Command: <prefix>rvsp event <id> no
 
     Given: -event id, message author
     Checks: -event.archived = False
@@ -300,7 +300,7 @@ async def set_reminder(bot, message):
                         except Exception as error: await user.notify_owner(bot, command_opener, message.author, error)
                         else: success = True
                     else:
-                        await bot.send_message(message.author, "Feel free to have some time to think about it, just call me again when you're ready.")
+                        await bot.send_message(message.author, secrets.timeout_msg) 
                 #--- if reminders don't exist
                 else:
                     errors == 'No reminders/alarms available for the reason/event you provided.\n'

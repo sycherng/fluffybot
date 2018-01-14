@@ -16,4 +16,9 @@ event.spawn_reminder_entries, event_rvsp, .set_reminder done
 reminder.reminder_checker done
 event.event_list done
 
-wip: cleaning up long code blocks, inserting missing function documentation, proper command format error handling
+1/13/2018
+wip: 
+
+-add timeout and messages on welcome module, convert to database table instead of temp objects
+
+-fix user listing function, cleaning up long code blocks, inserting missing function documentation, proper command format error handling
