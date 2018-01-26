@@ -45,7 +45,11 @@ async def user_welcome(bot, message):
     await bot.send_message(message.author, "Which category best describes the new member?\n")
 
     #---if no game
-    if not game: await user_welcome_no_game(bot, message):
+    if not game: await user_welcome_no_game(bot, message)
     #---if game
-     
-
+    
+ 
+async def user_welcome_no_game(bot, message):
+    '''|bot|
+    Delivers a welcome for the user in a channel visible to all members.
+    '''

@@ -17,6 +17,9 @@ reminder.reminder_checker done
 event.event_list done
 
 1/13/2018
+wip refactoring welcome module
+
+1/14/2018
 wip: 
 
 -add timeout and messages on welcome module, convert to database table instead of temp objects
